@@ -1,0 +1,92 @@
+Here are all the commands you need — copy-paste them one by one in your **WSL Ubuntu terminal**:
+
+---
+
+## Step 1 — Open WSL Terminal
+
+In Windows, press `Win+R`, type `wsl`, hit Enter. Or open **Ubuntu** from Start Menu.
+
+Then navigate to the project:
+```bash
+cd /mnt/c/Users/"Rishikesh N"/Desktop/mikeos-4.7.0
+```
+
+---
+
+## Step 2 — Build Everything
+
+```bash
+bash build_kernel.sh && python3 build_iso.py
+```
+
+You should see:
+- `=== Kernel Build Complete! ===`
+- `ISO generated.`
+
+---
+
+## Step 3 — Boot in QEMU (with a window you can interact with)
+
+```bash
+qemu-system-x86_64 \
+  -bios /usr/share/ovmf/OVMF.fd \
+  -drive id=cd0,file=build_uefi/mikeos-uefi.iso,if=none,format=raw \
+  -device ide-cd,drive=cd0,bootindex=0 \
+  -m 256M \
+  -vga std \
+  -net none
+```
+
+This opens a **real QEMU window** where you can:
+- Use **arrow keys** to navigate the file list
+- Press **Enter** to select
+- Press **Esc** to go back
+
+---
+
+## (Optional) If you want a bigger window
+
+```bash
+qemu-system-x86_64 \
+  -bios /usr/share/ovmf/OVMF.fd \
+  -drive id=cd0,file=build_uefi/mikeos-uefi.iso,if=none,format=raw \
+  -device ide-cd,drive=cd0,bootindex=0 \
+  -m 512M \
+  -vga std \
+  -net none \
+  -display sdl,window-close=off
+```
+
+---
+
+## Troubleshooting
+
+**If QEMU window doesn't open** (WSL has no display):
+```bash
+# Check if you have a display
+echo $DISPLAY
+
+# If empty, set it (WSLg should set this automatically on Win11)
+export DISPLAY=:0
+```
+
+**If OVMF not found:**
+```bash
+sudo apt-get install -y ovmf qemu-system-x86
+```
+
+**If you see the OVMF boot menu** (blue screen with boot options), just **wait 2-3 seconds** — it will auto-boot from the CD.
+
+---
+
+## What You'll See
+
+| Screen | What to do |
+|---|---|
+| Blue desktop + file selector | Use ↑↓ arrows, press Enter |
+| Dialog with OK/Cancel | Press Enter (OK) or Esc (Cancel) |
+| CLI mode | Type `help` and press Enter |
+| CLI commands | `dir`, `ver`, `cpu`, `time`, `date`, `beep`, `shutdown` |
+
+Viewed manual.txt:73-89
+Edited manual.txt
