@@ -26,6 +26,8 @@ SOURCES=(
     "$FEAT_DIR/misc.c"
     "$FEAT_DIR/dialog.c"
     "$FEAT_DIR/cli.c"
+    "programs/calculator.c"
+    "programs/hangman.c"
 )
 
 # ─────────────────────────────────────────────────────

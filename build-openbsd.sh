@@ -1,7 +1,8 @@
 #!/bin/sh
 
-# This script assembles the MikeOS bootloader, kernel and programs
-# with NASM, and then creates floppy and CD images (on OpenBSD)
+# This script builds the original BIOS MikeOS bootloader and kernel
+# with NASM, then creates floppy and CD images (on OpenBSD).
+# The UEFI build is handled by build_kernel.sh and build_iso.py.
 
 # Only the root user can mount the floppy disk image as a virtual
 # drive (loopback mounting), in order to copy across the files
@@ -37,18 +38,6 @@ nasm -O0 -w+orphan-labels -f bin -o kernel.bin kernel.asm || exit
 cd ..
 
 
-echo ">>> Assembling programs..."
-
-cd programs
-
-for i in *.asm
-do
-	nasm -O0 -w+orphan-labels -f bin $i -o `basename $i .asm`.bin || exit
-done
-
-cd ..
-
-
 echo ">>> Adding bootloader to floppy image..."
 
 dd conv=notrunc if=source/bootload/bootload.bin of=disk_images/mikeos.flp || exit
@@ -61,7 +50,7 @@ vnconfig vnd3 disk_images/mikeos.flp || exit
 
 mkdir tmp-loop && mount -t msdos /dev/vnd3c tmp-loop && cp source/kernel.bin tmp-loop/
 
-cp programs/*.bin programs/*.bas programs/sample.pcx programs/vedithlp.txt programs/gen.4th programs/hello.512 tmp-loop
+cp programs/*.bas tmp-loop
 
 echo ">>> Unmounting loopback floppy..."
 
@@ -77,4 +66,3 @@ rm -f disk_images/mikeos.iso
 mkisofs -quiet -V 'MIKEOS' -r -J -o disk_images/mikeos.iso -b mikeos.flp disk_images/ || exit
 
 echo '>>> Done!'
-

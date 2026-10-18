@@ -16,7 +16,7 @@ void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     os_set_color(WHITE_ON_BLACK);
     os_clear_screen();
 
-    os_print_string("MikeOS ");
+    os_print_string("GMU-OS ");
     os_print_string(MIKEOS_VER);
     os_print_string(" (64-bit UEFI Edition)\r\n");
     os_print_string("Type 'help' for a list of commands or 'exit' to return to menu.\r\n\r\n");

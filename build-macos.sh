@@ -79,14 +79,6 @@ cd source
 echo "[okay] assembled kernel"
 cd ..
 
-cd programs
-for i in *.asm; do
-	"$NASM_PATH" -O0 -f bin $i -o "$(basename $i .asm).bin" || exit 1
-	echo "[okay] assembled program: $i"
-done
-echo "[okay] assembled all programs"
-cd ..
-
 cp disk_images/mikeos.flp disk_images/mikeos.dmg
 echo "[okay] copied floppy image"
 
@@ -103,7 +95,7 @@ mount -t msdos "$dev" "$tmp_file"
 [ $? -ne 0 ] && echo "[halt] could not mount "$dev"" >&2 && exit 1
 
 cp source/kernel.bin "$tmp_file/"
-cp programs/*.bin programs/*.bas programs/sample.pcx programs/vedithlp.txt programs/gen.4th programs/hello.512 "$tmp_file"
+cp programs/*.bas "$tmp_file"
 echo "[okay] added programs to image"
 
 diskutil umount "$tmp_file"
