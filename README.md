@@ -28,10 +28,12 @@ developer handbooks.
 | `fix_pe_reloc.py` | Repairs the PE base-relocation data in the GCC/gnu-efi build path. |
 | `JOURNEY.md` | Detailed account of the conversion from BIOS-based 16-bit MikeOS to the 64-bit UEFI port. |
 
-The current UEFI kernel launches the C applications from the program menu.
-Original BASIC files are kept as source references; the UEFI build does not
-include a BASIC interpreter or execute the old 16-bit application binaries.
-See [`programs/README.md`](programs/README.md) for application details.
+The UEFI build creates separate `build_uefi/CALCULATOR.EFI` and
+`build_uefi/HANGMAN.EFI` applications and includes them at the root of the
+boot volume. They appear in `dir`; choose one in **Storage Browser** or run it
+by entering its filename at the CLI prompt. Original BASIC sources are kept
+as references; the UEFI build does not run the old 16-bit `.bin` programs.
+See [`programs/README.md`](programs/README.md) for details.
 
 ## Build the UEFI ISO in WSL
 

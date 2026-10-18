@@ -22,12 +22,11 @@ SOURCES=(
     "$FEAT_DIR/mouse.c"
     "$FEAT_DIR/text.c"
     "$FEAT_DIR/disk.c"
+    "$FEAT_DIR/executable.c"
     "$FEAT_DIR/sound.c"
     "$FEAT_DIR/misc.c"
     "$FEAT_DIR/dialog.c"
     "$FEAT_DIR/cli.c"
-    "programs/calculator.c"
-    "programs/hangman.c"
 )
 
 # ─────────────────────────────────────────────────────
@@ -74,6 +73,30 @@ if command -v clang >/dev/null 2>&1 && command -v lld-link >/dev/null 2>&1; then
         -entry:efi_main \
         -out:"$BUILD_DIR/BOOTX64.EFI" \
         "${OBJS[@]}"
+
+    APP_FEATURE_OBJS=("${OBJS[@]:1}")
+    for app in calculator hangman; do
+        echo "  Clang: programs/$app.c"
+        clang "${CLANG_FLAGS[@]}" -c "programs/$app.c" -o "$BUILD_DIR/${app}_app.o"
+        clang "${CLANG_FLAGS[@]}" -D"MIKEOS_APP_${app^^}" \
+            -c programs/efi_main.c -o "$BUILD_DIR/${app}_main.o"
+        lld-link \
+            -subsystem:efi_application \
+            -entry:efi_main \
+            -out:"$BUILD_DIR/${app^^}.EFI" \
+            /usr/lib/gnuefi/x86_64/crt0-efi-x86_64.o \
+            "$BUILD_DIR/${app}_main.o" "$BUILD_DIR/${app}_app.o" \
+            "${APP_FEATURE_OBJS[@]}" \
+            /usr/lib/gnuefi/x86_64/libgnuefi.a \
+            /usr/lib/x86_64-linux-gnu/libefi.a 2>/dev/null || \
+        lld-link \
+            -subsystem:efi_application \
+            -entry:efi_main \
+            -out:"$BUILD_DIR/${app^^}.EFI" \
+            /usr/lib/gnuefi/x86_64/crt0-efi-x86_64.o \
+            "$BUILD_DIR/${app}_main.o" "$BUILD_DIR/${app}_app.o" \
+            "${APP_FEATURE_OBJS[@]}"
+    done
 
     echo ">>> Clang build complete."
 
@@ -173,6 +196,44 @@ else
         "$BUILD_DIR/mikeos.so" \
         "$BUILD_DIR/BOOTX64.RAW" \
         "$BUILD_DIR/BOOTX64.EFI"
+
+    APP_FEATURE_OBJS=("${OBJS[@]:1}")
+    for app in calculator hangman; do
+        echo "  GCC: programs/$app.c"
+        gcc "${CFLAGS[@]}" -c "programs/$app.c" -o "$BUILD_DIR/${app}_app.o"
+        gcc "${CFLAGS[@]}" -D"MIKEOS_APP_${app^^}" \
+            -c programs/efi_main.c -o "$BUILD_DIR/${app}_main.o"
+        app_so="$BUILD_DIR/${app}.so"
+        app_raw="$BUILD_DIR/${app}.RAW"
+        app_efi="$BUILD_DIR/${app^^}.EFI"
+
+        ld -shared -Bsymbolic -L/usr/lib -T "$EFI_LDS" \
+            "$CRT0" "$BUILD_DIR/${app}_main.o" "$BUILD_DIR/${app}_app.o" \
+            "${APP_FEATURE_OBJS[@]}" \
+            -o "$app_so" \
+            ${GNUEFI_LIB:+-l:$(basename "$GNUEFI_LIB")} \
+            ${EFI_LIB:+-l:$(basename "$EFI_LIB")} \
+            -L"$(dirname "$GNUEFI_LIB")" \
+            2>/dev/null || \
+        ld -shared -Bsymbolic -T "$EFI_LDS" \
+            "$CRT0" "$BUILD_DIR/${app}_main.o" "$BUILD_DIR/${app}_app.o" \
+            "${APP_FEATURE_OBJS[@]}" -o "$app_so" "$GNUEFI_LIB" "$EFI_LIB"
+
+        objcopy \
+            -j .text -j .sdata -j .data -j .rodata \
+            -j .dynamic -j .dynsym -j .rel -j .rela \
+            -j .rel.* -j .rela.* -j .reloc \
+            --target efi-app-x86_64 \
+            "$app_so" "$app_raw" 2>/dev/null || \
+        objcopy \
+            -j .text -j .sdata -j .data -j .rodata \
+            -j .dynamic -j .dynsym -j .rel -j .rela \
+            -j .rel.* -j .rela.* -j .reloc \
+            -I elf64-x86-64 -O pei-x86-64 --subsystem 10 \
+            "$app_so" "$app_raw"
+
+        python3 fix_pe_reloc.py "$app_so" "$app_raw" "$app_efi"
+    done
 fi
 
 # ─────────────────────────────────────────────────────
@@ -185,6 +246,7 @@ if [[ -f "$BUILD_DIR/BOOTX64.EFI" ]]; then
     echo ""
     echo "=== Kernel Build Complete! ==="
     echo "  Output: $BUILD_DIR/BOOTX64.EFI"
+    echo "  Apps:   $BUILD_DIR/CALCULATOR.EFI, $BUILD_DIR/HANGMAN.EFI"
 else
     echo "ERROR: BOOTX64.EFI was not produced!"
     exit 1

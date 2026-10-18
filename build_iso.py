@@ -1,4 +1,13 @@
-import subprocess, time, os
+import os
+import shutil
+
+apps = ("CALCULATOR.EFI", "HANGMAN.EFI")
+os.makedirs("build_uefi/iso", exist_ok=True)
+for app in apps:
+    app_path = os.path.join("build_uefi", app)
+    if not os.path.isfile(app_path):
+        raise SystemExit(f"Missing executable {app_path}; build the kernel first.")
+    shutil.copy2(app_path, os.path.join("build_uefi/iso", app))
 
 # Create clean ISO
 os.system("""
@@ -12,6 +21,8 @@ mmd -i build_uefi/iso/efiboot.img ::/EFI
 mmd -i build_uefi/iso/efiboot.img ::/EFI/BOOT
 mcopy -i build_uefi/iso/efiboot.img build_uefi/BOOTX64.EFI ::/EFI/BOOT/
 mcopy -i build_uefi/iso/efiboot.img build_uefi/iso/startup.nsh ::/
+mcopy -i build_uefi/iso/efiboot.img build_uefi/CALCULATOR.EFI ::/
+mcopy -i build_uefi/iso/efiboot.img build_uefi/HANGMAN.EFI ::/
 
 xorriso -as mkisofs -R -f \
     -e efiboot.img \

@@ -5,9 +5,9 @@
 #include "disk.h"
 #include "misc.h"
 #include "sound.h"
+#include "executable.h"
 
 void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
-    (void)ImageHandle;
     char cmd_buffer[256];
     char time_str[32];
     char date_str[32];
@@ -23,7 +23,7 @@ void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 
     while (1) {
         os_set_color(MAKE_COLOR(COLOR_LIGHT_CYAN, COLOR_BLACK));
-        os_print_string("MikeOS> ");
+        os_print_string("GMU-OS> ");
         os_set_color(WHITE_ON_BLACK);
 
         os_input_string(cmd_buffer, sizeof(cmd_buffer));
@@ -42,6 +42,7 @@ void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
             os_print_string("  dir      - List files on storage\r\n");
             os_print_string("  ver      - Display OS version & system details\r\n");
             os_print_string("  cpu      - Show processor information\r\n");
+            os_print_string("  <name>.EFI - Run a UEFI application from storage\r\n");
             os_print_string("  time     - Show current time\r\n");
             os_print_string("  date     - Show current date\r\n");
             os_print_string("  cat <f>  - Display contents of text file\r\n");
@@ -135,19 +136,32 @@ void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
             os_pause(5);
             os_shutdown();
         } else {
-            // Check if user entered a file to execute or view
-            if (os_file_exists(cmd_buffer)) {
+            int cmd_len = os_string_length(cmd_buffer);
+            if (cmd_len >= 4 &&
+                os_string_strincmp(cmd_buffer + cmd_len - 4, ".EFI", 4)) {
+                EFI_STATUS status =
+                    os_execute_efi_file(ImageHandle, SystemTable, cmd_buffer);
+                if (EFI_ERROR(status)) {
+                    char status_hex[17];
+                    os_long_int_to_string((uint64_t)status, 16, status_hex);
+                    os_print_string("Could not run application. UEFI status: 0x");
+                    os_print_string(status_hex);
+                    os_print_newline();
+                }
+            } else if (os_file_exists(cmd_buffer)) {
                 os_print_string("Found file '");
                 os_print_string(cmd_buffer);
-                os_print_string("'. Loading...\r\n");
+                os_print_string("'. Use cat or type to view text files.\r\n");
                 UINTN fsz = 0;
                 char preview_buf[512];
                 if (os_load_file(cmd_buffer, preview_buf, &fsz)) {
-                    os_print_string("File loaded successfully (");
-                    char sz_str[16];
-                    os_int_to_string((unsigned int)fsz, sz_str);
+                    os_print_string("File size: ");
+                    char sz_str[24];
+                    os_long_int_to_string((uint64_t)fsz, 10, sz_str);
                     os_print_string(sz_str);
-                    os_print_string(" bytes).\r\n");
+                    os_print_string(" bytes.\r\n");
+                } else {
+                    os_print_string("Could not read file contents.\r\n");
                 }
             } else {
                 os_print_string("Unknown command: '");
