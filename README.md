@@ -44,7 +44,7 @@ Change to the repository directory. For this checkout, the Windows path can be
 accessed from WSL as follows:
 
 ```bash
-cd /mnt/c/Users/"Rishikesh N"/Desktop/mikeos-4.7.0
+cd /mnt/c/Users/"Rishikesh N"/Desktop/GMU-OS-UEFI
 ```
 
 Build the UEFI application and ISO:
