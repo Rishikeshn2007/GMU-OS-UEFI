@@ -15,6 +15,7 @@
 #include "features/dialog.h"
 #include "features/cli.h"
 #include "features/executable.h"
+#include "../programs/gmu_api.h"
 
 static const char os_init_msg[] = "Welcome to GMU-OS 64-bit";
 static const char os_version_msg[] = "Version " MIKEOS_VER " (UEFI x86_64)";
@@ -24,9 +25,49 @@ static const char dialog_string_3[] = "program menu, Cancel for command line.";
 
 static const char file_finished_msg[] = ">>> Press a key to return to the program menu...";
 
-static int is_efi_file(const char *filename) {
+void GMU_APP_ABI gmu_app_clear_screen(void) {
+    os_clear_screen();
+}
+
+void GMU_APP_ABI gmu_app_set_color(UINT8 attr) {
+    os_set_color(attr);
+}
+
+void GMU_APP_ABI gmu_app_print_string(const char *text) {
+    os_print_string(text);
+}
+
+void GMU_APP_ABI gmu_app_print_char(char value) {
+    os_print_char(value);
+}
+
+void GMU_APP_ABI gmu_app_print_space(void) {
+    os_print_space();
+}
+
+UINT8 GMU_APP_ABI gmu_app_wait_for_key(void) {
+    return os_wait_for_key();
+}
+
+int GMU_APP_ABI gmu_app_input_dialog(char *buffer, int max_chars, const char *prompt) {
+    return os_input_dialog(buffer, max_chars, prompt);
+}
+
+int GMU_APP_ABI gmu_app_list_dialog(
+    const char *items,
+    const char *help1,
+    const char *help2,
+    char *selected_item) {
+    return os_list_dialog(items, help1, help2, selected_item);
+}
+
+unsigned int GMU_APP_ABI gmu_app_random(unsigned int low, unsigned int high) {
+    return os_get_random(low, high);
+}
+
+static int is_bin_file(const char *filename) {
     int len = os_string_length(filename);
-    return len >= 4 && os_string_strincmp(filename + len - 4, ".EFI", 4);
+    return len >= 4 && os_string_strincmp(filename + len - 4, ".BIN", 4);
 }
 
 static int is_text_file(const char *filename) {
@@ -39,19 +80,16 @@ static int is_text_file(const char *filename) {
            (len >= 4 && os_string_strincmp(filename + len - 3, ".MD", 3));
 }
 
-static void open_storage_file(
-    EFI_HANDLE ImageHandle,
-    EFI_SYSTEM_TABLE *SystemTable,
-    const char *filename) {
-    if (is_efi_file(filename)) {
-        EFI_STATUS status = os_execute_efi_file(ImageHandle, SystemTable, filename);
+static void open_storage_file(const char *filename) {
+    if (is_bin_file(filename)) {
+        EFI_STATUS status = os_execute_bin_file(filename);
         if (!EFI_ERROR(status)) return;
 
         os_clear_screen();
         os_set_color(WHITE_ON_BLACK);
         os_print_string("Could not run ");
         os_print_string(filename);
-        os_print_string(". UEFI status: 0x");
+        os_print_string(". Loader status: 0x");
         char status_hex[17];
         os_long_int_to_string((uint64_t)status, 16, status_hex);
         os_print_string(status_hex);
@@ -83,7 +121,7 @@ static void open_storage_file(
             os_print_string(app_buffer);
         }
     } else {
-        os_print_string("Unsupported file type. Select an .EFI application or a text file.\r\n");
+        os_print_string("Unsupported file type. Select a .BIN application or a text file.\r\n");
     }
 
     os_print_newline();
@@ -91,7 +129,7 @@ static void open_storage_file(
     os_wait_for_key();
 }
 
-static void app_selector(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+static void app_selector(void) {
     static const char app_list[] = "Storage Browser,Back";
     char selected_item[64];
     char selected_file[128];
@@ -100,14 +138,14 @@ static void app_selector(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) 
         os_draw_background(os_init_msg, os_version_msg, WHITE_ON_BLUE);
 
         int choice = os_list_dialog(app_list, "Select a file or application",
-                                    "Choose an .EFI file to run, or Esc to return",
+                                    "Choose an item, or Esc to return",
                                     selected_item);
         if (choice < 0 || choice == 1) {
             return;
         }
 
         if (os_file_selector(selected_file)) {
-            open_storage_file(ImageHandle, SystemTable, selected_file);
+            open_storage_file(selected_file);
         }
     }
 }
@@ -140,7 +178,7 @@ efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 
         if (choice == 0) {
             // OK -> App Selector
-            app_selector(ImageHandle, SystemTable);
+            app_selector();
         } else {
             // Cancel -> Command Line
             os_command_line(ImageHandle, SystemTable);

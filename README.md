@@ -19,21 +19,22 @@ developer handbooks.
 | `source/features/` | Kernel feature modules: framebuffer graphics and font rendering, keyboard and mouse input, file access, dialogs, CLI, sound, text utilities, and system information. |
 | `source/kernel.asm` | Original MikeOS assembly kernel, retained alongside the UEFI port. |
 | `source/bootload/` | Bootloader sources and related files for the original MikeOS project. |
-| `programs/` | Native C Calculator and Hangman apps linked into the UEFI kernel, plus retained original BASIC sources. |
+| `programs/` | Standalone C apps built into GMU-OS `.bin` files, the app API header, and retained original BASIC sources. |
 | `disk_images/` | Original MikeOS floppy, ISO, and disk-image releases. These are distinct from the UEFI ISO built by this project. |
 | `doc/` | Original MikeOS user/developer handbooks, change history, credits, and license. |
-| `build_kernel.sh` | Compiles and links the 64-bit UEFI application as `build_uefi/BOOTX64.EFI`. |
-| `build_iso.py` | Packages the EFI application into a bootable UEFI ISO at `build_uefi/mikeos-uefi.iso`. |
+| `build_kernel.sh` | Builds the 64-bit UEFI kernel and compiles C applications into `.bin` files under `build_uefi/`. |
+| `build_iso.py` | Packages the UEFI kernel and `.bin` applications into `build_uefi/mikeos-uefi.iso`. |
 | `build_and_test.sh` | Builds the kernel and ISO, then runs the available QEMU screen test. |
 | `fix_pe_reloc.py` | Repairs the PE base-relocation data in the GCC/gnu-efi build path. |
 | `JOURNEY.md` | Detailed account of the conversion from BIOS-based 16-bit MikeOS to the 64-bit UEFI port. |
 
-The UEFI build creates separate `build_uefi/CALCULATOR.EFI` and
-`build_uefi/HANGMAN.EFI` applications and includes them at the root of the
-boot volume. They appear in `dir`; choose one in **Storage Browser** or run it
-by entering its filename at the CLI prompt. Original BASIC sources are kept
-as references; the UEFI build does not run the old 16-bit `.bin` programs.
-See [`programs/README.md`](programs/README.md) for details.
+The UEFI build creates separate `build_uefi/calculator.bin` and
+`build_uefi/hangman.bin` GMU-OS applications and includes them at the root of
+the boot volume. They appear in `dir`; choose one in **Storage Browser** or
+run it by entering its filename at the CLI prompt. These are new x86-64
+ELF-based GMU-OS binaries, not the old 16-bit MikeOS `.bin` format. Add a C
+app as `programs/your_app.c` and rebuild to compile and package it. See
+[`programs/README.md`](programs/README.md) for the app ABI and how to add apps.
 
 ## Build the UEFI ISO in WSL
 

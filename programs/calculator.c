@@ -1,18 +1,15 @@
-#include "apps.h"
-#include "../source/features/dialog.h"
-#include "../source/features/keyboard.h"
-#include "../source/features/screen.h"
-#include "../source/features/text.h"
+#include "gmu_api.h"
 
 #include <stdint.h>
+#include <stddef.h>
 
-static int read_integer(const char *prompt, int64_t *value) {
+static int read_integer(const GMU_APP_API *api, const char *prompt, int64_t *value) {
     char input[32];
     int i = 0;
     int negative = 0;
     uint64_t magnitude = 0;
 
-    if (os_input_dialog(input, sizeof(input), prompt) != 0) return 0;
+    if (api->input_dialog(input, sizeof(input), prompt) != 0) return 0;
     if (input[0] == '-') {
         negative = 1;
         i++;
@@ -31,33 +28,51 @@ static int read_integer(const char *prompt, int64_t *value) {
     return 1;
 }
 
-static void print_result(int64_t value) {
+static void print_result(const GMU_APP_API *api, int64_t value) {
     char digits[32];
     uint64_t magnitude;
 
     if (value < 0) {
-        os_print_string("-");
+        api->print_string("-");
         magnitude = (uint64_t)(-(value + 1)) + 1;
     } else {
         magnitude = (uint64_t)value;
     }
-    os_long_int_to_string(magnitude, 10, digits);
-    os_print_string(digits);
+    {
+        static const char table[] = "0123456789";
+        int pos = 0;
+        do {
+            digits[pos++] = table[magnitude % 10];
+            magnitude /= 10;
+        } while (magnitude != 0);
+        digits[pos] = '\0';
+        for (int left = 0, right = pos - 1; left < right; left++, right--) {
+            char temp = digits[left];
+            digits[left] = digits[right];
+            digits[right] = temp;
+        }
+    }
+    api->print_string(digits);
 }
 
-static void show_message(const char *message) {
-    os_clear_screen();
-    os_set_color(WHITE_ON_BLACK);
-    os_print_string("Calculator\r\n\r\n");
-    os_print_string(message);
-    os_print_string("\r\n\r\nPress any key to continue.");
-    os_wait_for_key();
+static void show_message(const GMU_APP_API *api, const char *message) {
+    api->clear_screen();
+    api->set_color(GMU_COLOR_WHITE_ON_BLACK);
+    api->print_string("Calculator\r\n\r\n");
+    api->print_string(message);
+    api->print_string("\r\n\r\nPress any key to continue.");
+    api->wait_for_key();
 }
 
-void app_calculator(void) {
+int GMU_APP_ABI app_main(const GMU_APP_API *api) {
     static const char operations[] =
         "Add,Subtract,Multiply,Integer divide,Back";
     char selected[64];
+
+    if (!api || api->abi_version != GMU_APP_ABI_VERSION ||
+        api->struct_size < sizeof(GMU_APP_API)) {
+        return 1;
+    }
 
     while (1) {
         int operation;
@@ -66,26 +81,26 @@ void app_calculator(void) {
         int64_t right;
         int64_t result;
 
-        os_clear_screen();
-        os_set_color(WHITE_ON_BLACK);
-        os_print_string("MikeOS Integer Calculator\r\n");
-        os_print_string("Enter whole numbers from -1000000000 to 1000000000.\r\n\r\n");
+        api->clear_screen();
+        api->set_color(GMU_COLOR_WHITE_ON_BLACK);
+        api->print_string("GMU-OS Integer Calculator\r\n");
+        api->print_string("Enter whole numbers from -1000000000 to 1000000000.\r\n\r\n");
 
-        operation = os_list_dialog(operations, "Select an operation",
-                                   "Esc returns to the program menu", selected);
-        if (operation < 0 || operation == 4) return;
+        operation = api->list_dialog(operations, "Select an operation",
+                                     "Esc returns to the program menu", selected);
+        if (operation < 0 || operation == 4) return 0;
 
-        read_status = read_integer("Enter the first whole number:", &left);
+        read_status = read_integer(api, "Enter the first whole number:", &left);
         if (read_status == 0) continue;
         if (read_status < 0) {
-            show_message("Invalid number. Use digits and an optional leading minus sign.");
+            show_message(api, "Invalid number. Use digits and an optional leading minus sign.");
             continue;
         }
 
-        read_status = read_integer("Enter the second whole number:", &right);
+        read_status = read_integer(api, "Enter the second whole number:", &right);
         if (read_status == 0) continue;
         if (read_status < 0) {
-            show_message("Invalid number. Use digits and an optional leading minus sign.");
+            show_message(api, "Invalid number. Use digits and an optional leading minus sign.");
             continue;
         }
 
@@ -97,21 +112,21 @@ void app_calculator(void) {
             result = left * right;
         } else {
             if (right == 0) {
-                show_message("Cannot divide by zero.");
+                show_message(api, "Cannot divide by zero.");
                 continue;
             }
             result = left / right;
         }
 
-        os_clear_screen();
-        os_set_color(WHITE_ON_BLACK);
-        os_print_string("Result: ");
-        print_result(result);
+        api->clear_screen();
+        api->set_color(GMU_COLOR_WHITE_ON_BLACK);
+        api->print_string("Result: ");
+        print_result(api, result);
         if (operation == 3) {
-            os_print_string("\r\nRemainder: ");
-            print_result(left % right);
+            api->print_string("\r\nRemainder: ");
+            print_result(api, left % right);
         }
-        os_print_string("\r\n\r\nPress any key to continue.");
-        os_wait_for_key();
+        api->print_string("\r\n\r\nPress any key to continue.");
+        api->wait_for_key();
     }
 }

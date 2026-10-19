@@ -1,0 +1,25 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Intermediate UEFI build files (keep the kernel, ISO, and .bin apps)
+build_uefi/*.o
+build_uefi/*.so
+build_uefi/*.RAW
+
+# QEMU screenshots and temporary image conversions
+build_uefi/*.ppm
+build_uefi/*.bmp
+build_uefi/*_test.png
+build_uefi/debug*.png
+build_uefi/bin_launch.png
+build_uefi/navigation_test.png
+
+# Local debug logs
+debug*.log
+ovmf_debug*.log

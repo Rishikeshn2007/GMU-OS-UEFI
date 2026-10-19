@@ -24,6 +24,9 @@ python3 build_iso.py
 echo ""
 echo "  ✓ ISO: build_uefi/mikeos-uefi.iso ($(du -sh build_uefi/mikeos-uefi.iso | cut -f1))"
 echo "  ✓ EFI: build_uefi/BOOTX64.EFI ($(du -sh build_uefi/BOOTX64.EFI | cut -f1))"
+for app in build_uefi/*.bin; do
+    echo "  ✓ App: $app ($(du -sh "$app" | cut -f1))"
+done
 
 if [[ "$NO_TEST" == "--no-test" ]]; then
     echo ""

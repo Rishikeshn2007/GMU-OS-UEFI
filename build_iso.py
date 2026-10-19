@@ -1,16 +1,19 @@
 import os
 import shutil
+import subprocess
+from pathlib import Path
 
-apps = ("CALCULATOR.EFI", "HANGMAN.EFI")
+apps = sorted(Path("build_uefi").glob("*.bin"))
+if not apps:
+    raise SystemExit("No .bin applications found; build the kernel first.")
 os.makedirs("build_uefi/iso", exist_ok=True)
-for app in apps:
-    app_path = os.path.join("build_uefi", app)
-    if not os.path.isfile(app_path):
-        raise SystemExit(f"Missing executable {app_path}; build the kernel first.")
-    shutil.copy2(app_path, os.path.join("build_uefi/iso", app))
+for old_app in ("CALCULATOR.EFI", "HANGMAN.EFI"):
+    (Path("build_uefi/iso") / old_app).unlink(missing_ok=True)
+for app_path in apps:
+    shutil.copy2(app_path, Path("build_uefi/iso") / app_path.name)
 
 # Create clean ISO
-os.system("""
+subprocess.run(["bash", "-e", "-c", """
 mkdir -p build_uefi/iso/EFI/BOOT
 cp build_uefi/BOOTX64.EFI build_uefi/iso/EFI/BOOT/
 echo "\\EFI\\BOOT\\BOOTX64.EFI" > build_uefi/iso/startup.nsh
@@ -21,8 +24,7 @@ mmd -i build_uefi/iso/efiboot.img ::/EFI
 mmd -i build_uefi/iso/efiboot.img ::/EFI/BOOT
 mcopy -i build_uefi/iso/efiboot.img build_uefi/BOOTX64.EFI ::/EFI/BOOT/
 mcopy -i build_uefi/iso/efiboot.img build_uefi/iso/startup.nsh ::/
-mcopy -i build_uefi/iso/efiboot.img build_uefi/CALCULATOR.EFI ::/
-mcopy -i build_uefi/iso/efiboot.img build_uefi/HANGMAN.EFI ::/
+mcopy -i build_uefi/iso/efiboot.img build_uefi/*.bin ::/
 
 xorriso -as mkisofs -R -f \
     -e efiboot.img \
@@ -30,6 +32,6 @@ xorriso -as mkisofs -R -f \
     -isohybrid-gpt-basdat \
     -V "MIKEOS_UEFI" \
     -o build_uefi/mikeos-uefi.iso build_uefi/iso 2>&1
-""")
+"""], check=True)
 
 print("ISO generated.")

@@ -1,11 +1,8 @@
-#ifndef MIKEOS_EXECUTABLE_H
-#define MIKEOS_EXECUTABLE_H
+#ifndef GMU_OS_EXECUTABLE_H
+#define GMU_OS_EXECUTABLE_H
 
 #include "types.h"
 
-EFI_STATUS os_execute_efi_file(
-    EFI_HANDLE ParentImage,
-    EFI_SYSTEM_TABLE *SystemTable,
-    const char *filename);
+EFI_STATUS os_execute_bin_file(const char *filename);
 
 #endif

@@ -42,7 +42,7 @@ void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
             os_print_string("  dir      - List files on storage\r\n");
             os_print_string("  ver      - Display OS version & system details\r\n");
             os_print_string("  cpu      - Show processor information\r\n");
-            os_print_string("  <name>.EFI - Run a UEFI application from storage\r\n");
+            os_print_string("  <name>.BIN - Run a GMU-OS application from storage\r\n");
             os_print_string("  time     - Show current time\r\n");
             os_print_string("  date     - Show current date\r\n");
             os_print_string("  cat <f>  - Display contents of text file\r\n");
@@ -138,13 +138,13 @@ void os_command_line(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
         } else {
             int cmd_len = os_string_length(cmd_buffer);
             if (cmd_len >= 4 &&
-                os_string_strincmp(cmd_buffer + cmd_len - 4, ".EFI", 4)) {
+                os_string_strincmp(cmd_buffer + cmd_len - 4, ".BIN", 4)) {
                 EFI_STATUS status =
-                    os_execute_efi_file(ImageHandle, SystemTable, cmd_buffer);
+                    os_execute_bin_file(cmd_buffer);
                 if (EFI_ERROR(status)) {
                     char status_hex[17];
                     os_long_int_to_string((uint64_t)status, 16, status_hex);
-                    os_print_string("Could not run application. UEFI status: 0x");
+                    os_print_string("Could not run application. Loader status: 0x");
                     os_print_string(status_hex);
                     os_print_newline();
                 }

@@ -1,22 +1,30 @@
-# Applications
+# GMU-OS Applications
 
-The UEFI applications below are separate x86-64 EFI executables. The build
-places them at the root of the boot volume, where `dir` lists them. Select an
-`.EFI` file in Storage Browser or enter its filename at the command line to
-run it:
+Each C source file in `programs/` (except headers) builds as a separate x86-64
+`ET_DYN` application image with a `.bin` extension. `build_iso.py` copies the
+apps to the root of the boot volume, where `dir` lists them. Run an app by
+selecting its `.bin` file in Storage Browser or entering its filename at the
+command line.
 
-- `CALCULATOR.EFI` — built from `calculator.c`; signed integer arithmetic.
-- `HANGMAN.EFI` — built from `hangman.c`; keyboard-driven word game.
-- `efi_main.c` — initializes screen, keyboard, mouse, and random-number
-  services for each standalone application.
-- `apps.h` — application entry-point declarations.
+## Application ABI
 
-The `.bas` files are original MikeOS BASIC programs retained as source
-references. The current UEFI build does not include a BASIC interpreter, so
-these files are not executable in the UEFI edition. The old 16-bit `.bin`
-programs are not compatible with this 64-bit UEFI executable format.
+Each C app exports this entry point from `gmu_api.h`:
 
-To add an application, implement it in C using the functions in
-`source/features/`, then add its source and EFI entry point to the application
-build section in `build_kernel.sh` and copy its output into the boot volume
-in `build_iso.py`.
+```c
+int app_main(const GMU_APP_API *api);
+```
+
+The OS passes the versioned API table to the app. It currently provides
+screen output, keyboard input, dialogs, and random numbers. Applications must
+be freestanding: no libc, dynamic dependencies, or BIOS system calls.
+The loader accepts x86-64 ELF shared images with `R_X86_64_RELATIVE`
+relocations and invokes the entry point using the System V x86-64 ABI. This is
+the GMU-OS `.bin` format; it is not compatible with the old 16-bit MikeOS
+`.bin` files or Windows `.exe` files.
+
+To add an app, include `programs/gmu_api.h` and implement `app_main` in
+`programs/your_app.c`. Run `bash build_and_test.sh`; it automatically compiles
+every `.c` app in `programs/` to `.bin` and packages the results in the ISO.
+
+The `.bas` files are original MikeOS programs retained as source references;
+this UEFI edition does not include a BASIC interpreter.
